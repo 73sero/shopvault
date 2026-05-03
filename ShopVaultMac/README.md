@@ -1,55 +1,82 @@
 # ShopVault Mac Viewer
 
-Read-only Mac-Viewer für `.shopvault` Snapshots, die in der iPhone-App via **Settings → Laptop-Zugriff** erzeugt werden.
+Read-only macOS app for browsing `.shopvault` snapshots exported from the iPhone app via **Settings → Laptop access → Encrypted export**.
 
-## Architektur
+## Architecture
 
-- Eigenständiges Swift Package, kein Coupling zur iOS-Codebasis.
-- Liest und entschlüsselt nur `.shopvault` Dateien.
-- Kein Schreibzugriff zurück zur iPhone-DB. Keine SQLCipher-Abhängigkeit.
-- Decryption: AES-256-GCM mit PBKDF2-HMAC-SHA256 (600.000 Iterationen), exakt wie der Encrypt-Pfad in `ShopVaultApp/ShopVaultApp/Services/DataExportService.swift`.
+- Standalone Swift Package — no coupling to the iOS codebase.
+- Reads and decrypts `.shopvault` files only. Never writes back.
+- No SQLCipher dependency. No third-party dependencies at all.
+- Decryption: AES-256-GCM with PBKDF2-HMAC-SHA256 (600 000 iterations) — identical to the encrypt path in `ShopVaultApp/ShopVaultApp/Services/DataExportService.swift`.
+- Decrypted data lives only in memory; closing the app discards everything.
+
+## What you get
+
+A native macOS app with **6 sections**:
+
+| Section | Content |
+|---|---|
+| **Shop overview** | Stat tiles (revenue, profit, margin, customers, products, cost), 6-month bar+line chart (revenue vs. cost vs. profit), top customers, recent orders, low-stock alerts |
+| **Orders** | Filterable list + master/detail with full line items, discount, customer contact info |
+| **Customers** | Sorted by lifetime spend; per-customer order history, contact pills (selectable text), notes |
+| **Products** | Card grid with code badge, spec pill, stock-fill bar, filter chips (All / Low / Empty / Favorites / Hidden) |
+| **Income overview** | Stats + monthly bar chart + category donut chart with breakdown legend, filterable list |
+| **Deliveries** | List with master/detail, items, cost; **right-click → Hide** to filter out old / erroneous deliveries locally (persists in macOS UserDefaults; the snapshot file stays untouched) |
+
+The dashboards exclude hidden deliveries from totals so profit and margin numbers reflect what you want to see.
 
 ## Workflow
 
-1. iPhone: ShopVault öffnen → Settings → Laptop-Zugriff → Verschlüsselt exportieren → Passwort wählen → Face ID / PIN bestätigen.
-2. Erzeugte `.shopvault` Datei via AirDrop / Files / iCloud auf den Mac übertragen.
-3. Mac-Viewer starten (siehe unten).
-4. Datei wählen → Export-Passwort eingeben → Entschlüsseln.
-5. In der Sidebar Tabellen anklicken (income_entries, customers, products, …) und Daten browsen.
+1. iPhone: Open ShopVault → Settings → "Laptop access" → "Encrypted export" → choose password → confirm with Face ID / PIN
+2. Transfer the `.shopvault` file to your Mac via AirDrop / Files / iCloud Drive / email
+3. Open the Mac viewer (see Build below)
+4. Pick the file → enter the export password → Unlock
+5. Browse the 6 sections from the sidebar
 
 ## Build & Run
 
-In Xcode (empfohlen):
+### Recommended: native `.app` bundle
+
+The build script produces a real `.app` with icon and Info.plist (necessary so file pickers work and the window grabs keyboard focus):
 
 ```bash
-open ShopVaultMac/Package.swift
+cd ShopVaultMac
+./build-app.sh
+open "./build/ShopVault Viewer.app"
+# Install permanently:
+cp -R "./build/ShopVault Viewer.app" /Applications/
 ```
 
-Dann in Xcode auf Run drücken.
+### Quick dev loop
 
-Per Kommandozeile:
+For iteration during development you can use plain SPM, but file pickers may misbehave:
 
 ```bash
 cd ShopVaultMac
 swift run ShopVaultMac
 ```
 
-> Mindestens macOS 14, weil `TableColumnForEach` für dynamische Spalten genutzt wird.
+> Requires macOS 14+ (uses `TableColumnForEach`, `@Observable`, `Charts.SectorMark`).
 
-## Was die Sidebar zeigt
+### Regenerating the app icon
 
-- Pro Tabelle: Name, Icon und Row-Count.
-- Im unteren Abschnitt: Hinweise auf entfernte Spalten, z. B. `users.pin_hash` (wird bewusst nicht exportiert, damit ein geleakter Snapshot keinen offline PIN-Bruteforce erlaubt).
+If you tweak `icon.svg`:
 
-## Was passiert lokal
+```bash
+./make-icon.sh   # rebuilds AppIcon.icns from icon.svg
+./build-app.sh   # picks up the new icon
+```
 
-- Datei wird in Memory entschlüsselt.
-- PBKDF2 läuft auf einem Background-Thread (1–2 s auf modernem Mac).
-- Daten verlassen den Mac nicht. Es gibt keinen Netzwerk-Code.
+## Privacy guarantees
 
-## Was der Viewer (noch) nicht kann
+- The viewer has **no network code.** Run it offline if you want.
+- The chosen password is held only in memory for the decryption call, then cleared.
+- Decrypted data lives only in `@Observable` view state — quitting the app removes it from RAM.
+- Hidden deliveries are stored as **delivery IDs only** (no content) in `UserDefaults` — does not leak data.
 
-- Schreiben zurück zur iPhone-DB (außerhalb des Scope der `.shopvault`-Architektur).
-- Diff zwischen mehreren Exports.
-- CSV/Excel-Export.
-- Persistenter Cache der entschlüsselten Daten (jede Session = neu öffnen + entschlüsseln).
+## What the viewer doesn't do (by design)
+
+- Write back to the iPhone database — that would defeat the snapshot model and break the export signature.
+- Diff between multiple exports.
+- CSV / Excel export (open issue if you need this).
+- Persist decrypted data — every session re-prompts for the password. This is a feature.
