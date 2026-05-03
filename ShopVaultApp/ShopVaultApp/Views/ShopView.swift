@@ -53,8 +53,8 @@ struct ShopView: View {
                         menuItem(
                             icon: "shippingbox.fill",
                             iconColor: Color.App.categoryPurple,
-                            title: "Lieferung eintragen",
-                            description: "Wareneingang erfassen",
+                            title: "Lieferungen",
+                            description: "Wareneingänge verwalten",
                             destination: .delivery
                         )
                     }
@@ -72,7 +72,7 @@ struct ShopView: View {
             case .orders: OrdersListView(viewModel: OrderListViewModel())
             case .customers: CustomerListView(viewModel: CustomerListViewModel())
             case .inventory: InventoryView(viewModel: InventoryViewModel())
-            case .delivery: DeliveryView(viewModel: DeliveryViewModel())
+            case .delivery: DeliveryListView(viewModel: DeliveryListViewModel())
             }
         }
         .onAppear {

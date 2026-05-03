@@ -69,6 +69,31 @@ final class DeliveryRepository: @unchecked Sendable {
         return results.compactMap { rowToDelivery($0) }
     }
 
+    /// Deletes a delivery and restores product stock atomically.
+    /// Stock is clamped at 0 (won't go negative if some products were sold after the delivery).
+    func deleteDelivery(deliveryId: String) async throws {
+        let items = try await getDeliveryItems(deliveryId: deliveryId)
+        let now = ISO8601DateFormatter().string(from: Date())
+
+        try databaseManager.transaction {
+            for item in items {
+                let sql = """
+                UPDATE products
+                SET stock = CASE WHEN stock - ? < 0 THEN 0 ELSE stock - ? END,
+                    updated_at = ?
+                WHERE id = ?
+                """
+                try self.databaseManager.execute(sql, parameters: [
+                    item.quantity, item.quantity, now, item.productId
+                ])
+            }
+            try self.databaseManager.execute(
+                "DELETE FROM supplier_deliveries WHERE id = ?",
+                parameters: [deliveryId]
+            )
+        }
+    }
+
     func getDeliveryItems(deliveryId: String) async throws -> [DeliveryItem] {
         let sql = """
         SELECT di.*, p.code AS product_code, p.name AS product_name, p.specification AS product_spec

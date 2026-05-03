@@ -3,8 +3,11 @@ import SwiftUI
 struct InventoryView: View {
     @StateObject var viewModel: InventoryViewModel
     @EnvironmentObject var appState: AppState
-    @State private var editingProduct: Product?
+    @State private var stockEditing: Product?
     @State private var stockInput = ""
+    @State private var showAddProduct = false
+    @State private var editingProduct: Product?
+    @State private var deletingProduct: Product?
 
     var body: some View {
         ZStack {
@@ -51,32 +54,48 @@ struct InventoryView: View {
                             ForEach(Array(viewModel.filteredProducts.enumerated()), id: \.element.id) { index, product in
                                 ProductRow(product: product)
                                     .opacity(product.isActive ? 1.0 : 0.5)
+                                    .onTapGesture {
+                                        editingProduct = product
+                                    }
                                     .contextMenu {
                                         Button {
                                             editingProduct = product
+                                        } label: {
+                                            Label("Bearbeiten", systemImage: "pencil")
+                                        }
+
+                                        Button {
+                                            stockEditing = product
                                             stockInput = "\(product.stock)"
                                         } label: {
-                                            Label("Bestand anpassen", systemImage: "number.square")
+                                            Label("Nur Bestand anpassen", systemImage: "number.square")
                                         }
 
                                         Button {
                                             viewModel.toggleFavorite(product)
+                                            HapticManager.impact(.light)
                                         } label: {
                                             Label(
-                                                product.isFavorite ? "Nicht mehr hervorheben" : "Hervorheben",
+                                                product.isFavorite ? "Favorit entfernen" : "Als Favorit",
                                                 systemImage: product.isFavorite ? "star.slash" : "star.fill"
                                             )
                                         }
 
                                         Divider()
 
-                                        Button(role: product.isActive ? .destructive : nil) {
+                                        Button {
                                             viewModel.toggleHidden(product)
                                         } label: {
                                             Label(
                                                 product.isActive ? "Ausblenden" : "Einblenden",
                                                 systemImage: product.isActive ? "eye.slash" : "eye"
                                             )
+                                        }
+
+                                        Button(role: .destructive) {
+                                            deletingProduct = product
+                                        } label: {
+                                            Label("Löschen", systemImage: "trash")
                                         }
                                     }
                                     .staggeredAppear(index: index + 3)
@@ -96,60 +115,103 @@ struct InventoryView: View {
         }
         .navigationTitle("Inventar")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    HapticManager.impact(.light)
+                    showAddProduct = true
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(LinearGradient.appAccent)
+                }
+                .accessibilityLabel("Neues Produkt")
+            }
+        }
+        .refreshable { viewModel.loadProducts() }
         .onAppear { viewModel.loadProducts() }
         .onReceive(NotificationCenter.default.publisher(for: .stockDidChange)) { _ in
             viewModel.loadProducts()
         }
+        .sheet(isPresented: $showAddProduct) {
+            ProductFormView(existing: nil) { _ in viewModel.loadProducts() }
+                .environmentObject(appState)
+        }
         .sheet(item: $editingProduct) { product in
-            NavigationStack {
-                VStack(spacing: AppSpacing.lg) {
-                    VStack(spacing: AppSpacing.xs) {
-                        Text(product.name)
-                            .font(Font.App.headline)
-                            .foregroundStyle(Color.App.textPrimary)
-                        Text("\(product.code) · \(product.specification)")
-                            .font(Font.App.caption)
-                            .foregroundStyle(Color.App.textSecondary)
-                    }
-
-                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Text("Aktueller Bestand: \(product.stock)")
-                            .font(Font.App.caption)
-                            .foregroundStyle(Color.App.textSecondary)
-
-                        TextField("Neuer Bestand", text: $stockInput)
-                            .keyboardType(.numberPad)
-                            .font(Font.App.amountLarge)
-                            .foregroundStyle(Color.App.textPrimary)
-                            .multilineTextAlignment(.center)
-                            .padding(AppSpacing.md)
-                            .background(Color.App.bgTertiary)
-                            .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
-                    }
-
-                    GradientButton(title: "Bestand speichern", icon: "checkmark.circle.fill") {
-                        if let newStock = Int(stockInput), newStock >= 0 {
-                            viewModel.updateStock(product, newStock: newStock)
-                            editingProduct = nil
-                        }
-                    }
-
-                    Spacer()
+            ProductFormView(existing: product) { _ in viewModel.loadProducts() }
+                .environmentObject(appState)
+        }
+        .sheet(item: $stockEditing) { product in
+            stockSheet(for: product)
+        }
+        .alert("Produkt löschen?", isPresented: Binding(
+            get: { deletingProduct != nil },
+            set: { if !$0 { deletingProduct = nil } }
+        )) {
+            Button("Abbrechen", role: .cancel) {}
+            Button("Löschen", role: .destructive) {
+                if let p = deletingProduct {
+                    viewModel.deleteProduct(p)
+                    HapticManager.notification(.success)
                 }
-                .padding(AppSpacing.lg)
-                .background(Color.App.bgPrimary.ignoresSafeArea())
-                .navigationTitle("Bestand anpassen")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbarColorScheme(.dark, for: .navigationBar)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Abbrechen") { editingProduct = nil }
-                            .foregroundStyle(Color.App.textSecondary)
+                deletingProduct = nil
+            }
+        } message: {
+            Text("Das Produkt wird entfernt. Falls es bereits in Bestellungen verwendet wurde, wird es nur ausgeblendet, nicht gelöscht.")
+        }
+    }
+
+    @ViewBuilder
+    private func stockSheet(for product: Product) -> some View {
+        NavigationStack {
+            VStack(spacing: AppSpacing.lg) {
+                VStack(spacing: AppSpacing.xs) {
+                    Text(product.name)
+                        .font(Font.App.headline)
+                        .foregroundStyle(Color.App.textPrimary)
+                    Text("\(product.code)\(product.specification.isEmpty ? "" : " · \(product.specification)")")
+                        .font(Font.App.caption)
+                        .foregroundStyle(Color.App.textSecondary)
+                }
+
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    Text("Aktueller Bestand: \(product.stock)")
+                        .font(Font.App.caption)
+                        .foregroundStyle(Color.App.textSecondary)
+
+                    TextField("Neuer Bestand", text: $stockInput)
+                        .keyboardType(.numberPad)
+                        .font(Font.App.amountLarge)
+                        .foregroundStyle(Color.App.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .padding(AppSpacing.md)
+                        .background(Color.App.bgTertiary)
+                        .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
+                }
+
+                GradientButton(title: "Bestand speichern", icon: "checkmark.circle.fill") {
+                    if let newStock = Int(stockInput), newStock >= 0 {
+                        viewModel.updateStock(product, newStock: newStock)
+                        HapticManager.notification(.success)
+                        stockEditing = nil
                     }
+                }
+
+                Spacer()
+            }
+            .padding(AppSpacing.lg)
+            .background(Color.App.bgPrimary.ignoresSafeArea())
+            .navigationTitle("Bestand anpassen")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { stockEditing = nil }
+                        .foregroundStyle(Color.App.textSecondary)
                 }
             }
-            .presentationDetents([.medium])
         }
+        .presentationDetents([.medium])
     }
 
     // MARK: - Filter Tabs
@@ -235,20 +297,27 @@ struct InventoryView: View {
 
     // MARK: - Empty State
 
+    @ViewBuilder
     private var emptyState: some View {
-        VStack(spacing: AppSpacing.sm) {
-            Image(systemName: "shippingbox")
-                .font(.system(size: 48))
-                .foregroundStyle(Color.App.textSecondary.opacity(0.5))
-            Text("Keine Produkte gefunden")
-                .font(Font.App.headline)
-                .foregroundStyle(Color.App.textSecondary)
-            Text("Passe deine Filter oder Suche an")
-                .font(Font.App.caption)
-                .foregroundStyle(Color.App.textSecondary.opacity(0.7))
+        if viewModel.products.isEmpty {
+            EmptyStateCard(
+                icon: "shippingbox",
+                title: "Noch keine Produkte",
+                subtitle: "Lege dein erstes Produkt an oder starte den Onboarding-Wizard erneut, um eine Branchen-Vorlage zu nutzen.",
+                actionTitle: "Erstes Produkt anlegen",
+                actionIcon: "plus.circle.fill"
+            ) {
+                showAddProduct = true
+            }
+            .padding(.horizontal, AppSpacing.md)
+        } else {
+            EmptyStateCard(
+                icon: "magnifyingglass",
+                title: "Keine Treffer",
+                subtitle: "Passe deine Filter oder Suche an, um Produkte zu finden."
+            )
+            .padding(.horizontal, AppSpacing.md)
         }
-        .padding(AppSpacing.xxl)
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Footer Stats

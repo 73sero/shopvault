@@ -73,6 +73,37 @@ struct HubView: View {
                         .staggeredAppear(index: 2)
                     }
 
+                    // MARK: - Quick Actions
+                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                        Text("Schnellzugriff")
+                            .font(Font.App.headline)
+                            .foregroundStyle(Color.App.textSecondary)
+                            .padding(.horizontal, AppSpacing.md)
+
+                        HStack(spacing: AppSpacing.xs) {
+                            QuickActionTile(
+                                icon: "plus.circle.fill",
+                                label: "Bestellung",
+                                color: Color.App.accentPrimary,
+                                value: "newOrder"
+                            )
+                            QuickActionTile(
+                                icon: "person.crop.circle.badge.plus",
+                                label: "Kunde",
+                                color: Color.App.categoryBlue,
+                                value: "newCustomer"
+                            )
+                            QuickActionTile(
+                                icon: "shippingbox.fill",
+                                label: "Lieferung",
+                                color: Color.App.categoryPurple,
+                                value: "newDelivery"
+                            )
+                        }
+                        .padding(.horizontal, AppSpacing.md)
+                    }
+                    .staggeredAppear(index: 3)
+
                     // MARK: - Sections
                     VStack(alignment: .leading, spacing: AppSpacing.sm) {
                         Text("Bereiche")
@@ -102,7 +133,7 @@ struct HubView: View {
                         }
                         .padding(.horizontal, AppSpacing.md)
                     }
-                    .staggeredAppear(index: 3)
+                    .staggeredAppear(index: 4)
 
                     // MARK: - Recent Activity
                     if !viewModel.recentOrders.isEmpty {
@@ -208,6 +239,44 @@ private struct StatCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(padding: AppSpacing.sm)
+    }
+}
+
+// MARK: - Quick Action Tile
+
+private struct QuickActionTile: View {
+    let icon: String
+    let label: String
+    let color: Color
+    let value: String
+
+    var body: some View {
+        NavigationLink(value: value) {
+            VStack(spacing: AppSpacing.xs) {
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: icon)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(color)
+                }
+                Text(label)
+                    .font(Font.App.smallCaption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.App.textPrimary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, AppSpacing.sm)
+            .background(Color.App.bgSecondary)
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppRadius.medium)
+                    .stroke(color.opacity(0.18), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(TapGesture().onEnded { HapticManager.impact(.light) })
     }
 }
 

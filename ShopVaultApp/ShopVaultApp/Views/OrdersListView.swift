@@ -40,16 +40,15 @@ struct OrdersListView: View {
                         .tint(Color.App.accentPrimary)
                     Spacer()
                 } else if viewModel.filteredOrders.isEmpty {
-                    VStack(spacing: AppSpacing.sm) {
-                        Image(systemName: "bag")
-                            .font(.system(size: 48))
-                            .foregroundStyle(Color.App.textSecondary.opacity(0.5))
-                        Text("Noch keine Bestellungen")
-                            .font(Font.App.headline)
-                            .foregroundStyle(Color.App.textSecondary)
-                    }
-                    .padding(AppSpacing.xxl)
-                    .frame(maxHeight: .infinity)
+                    EmptyStateCard(
+                        icon: viewModel.searchText.isEmpty ? "bag" : "magnifyingglass",
+                        title: viewModel.searchText.isEmpty ? "Noch keine Bestellungen" : "Keine Treffer",
+                        subtitle: viewModel.searchText.isEmpty
+                            ? "Erfasse deine erste Bestellung über das Plus-Icon im Shop-Tab."
+                            : "Versuche eine andere Suche oder lösche den Filter."
+                    )
+                    .padding(AppSpacing.md)
+                    .frame(maxHeight: .infinity, alignment: .top)
                 } else {
                     ScrollView {
                         LazyVStack(spacing: AppSpacing.xs) {
@@ -66,6 +65,11 @@ struct OrdersListView: View {
                         }
                         .padding(.horizontal, AppSpacing.md)
                         .padding(.bottom, AppSpacing.lg)
+                    }
+                    .refreshable {
+                        if let userId = appState.currentUser?.id {
+                            viewModel.loadOrders(userId: userId)
+                        }
                     }
                 }
             }

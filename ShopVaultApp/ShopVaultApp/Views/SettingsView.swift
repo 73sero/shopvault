@@ -78,6 +78,41 @@ struct SettingsView: View {
                         .staggeredAppear(index: 2)
 
                         VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                            SectionHeader(title: "Daten", icon: "tray.full.fill")
+                            VStack(spacing: AppSpacing.sm) {
+                                Button {
+                                    HapticManager.impact(.light)
+                                    viewModel.showingRestartOnboardingConfirm = true
+                                } label: {
+                                    SettingsActionRow(
+                                        icon: "wand.and.stars",
+                                        iconColor: Color.App.accentSecondary,
+                                        title: "Onboarding-Wizard erneut starten",
+                                        subtitle: "Wähle ein neues Branchen-Template aus"
+                                    )
+                                }
+                                .buttonStyle(.plain)
+
+                                Divider().overlay(Color.white.opacity(0.05))
+
+                                Button {
+                                    HapticManager.impact(.medium)
+                                    viewModel.showingDeleteAllConfirm = true
+                                } label: {
+                                    SettingsActionRow(
+                                        icon: "trash.fill",
+                                        iconColor: Color.App.danger,
+                                        title: "Alle Daten löschen",
+                                        subtitle: "Produkte, Kunden, Bestellungen, Lieferungen, Einnahmen — unwiderruflich"
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .glassCard(padding: AppSpacing.sm)
+                        }
+                        .staggeredAppear(index: 3)
+
+                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
                             SectionHeader(title: t("about"), icon: "info.circle.fill")
                             VStack(spacing: 0) {
                                 SettingsRow(label: t("app_version"), value: "1.0.0")
@@ -86,10 +121,10 @@ struct SettingsView: View {
                             }
                             .glassCard(padding: 0)
                         }
-                        .staggeredAppear(index: 3)
+                        .staggeredAppear(index: 4)
 
                         GradientButton(title: t("logout"), icon: "arrow.backward.circle.fill", action: { viewModel.showingLogoutConfirm = true }, style: .danger)
-                            .staggeredAppear(index: 4)
+                            .staggeredAppear(index: 5)
                     }
                     .padding(AppSpacing.md)
                 }
@@ -107,6 +142,26 @@ struct SettingsView: View {
                     Button(t("cancel"), role: .cancel) {}
                     Button(t("logout"), role: .destructive) { viewModel.logout() }
                 } message: { Text(t("logout_message")) }
+                .alert("Onboarding erneut starten?", isPresented: $viewModel.showingRestartOnboardingConfirm) {
+                    Button("Abbrechen", role: .cancel) {}
+                    Button("Starten") {
+                        if let userId = appState.currentUser?.id {
+                            viewModel.restartOnboarding(userId: userId, appState: appState)
+                        }
+                    }
+                } message: {
+                    Text("Du kannst danach ein neues Branchen-Template wählen oder leer starten. Bestehende Produkte, Bestellungen und Kunden werden nicht angetastet.")
+                }
+                .alert("Alle Daten löschen?", isPresented: $viewModel.showingDeleteAllConfirm) {
+                    Button("Abbrechen", role: .cancel) {}
+                    Button("Endgültig löschen", role: .destructive) {
+                        if let userId = appState.currentUser?.id {
+                            viewModel.deleteAllData(userId: userId, appState: appState)
+                        }
+                    }
+                } message: {
+                    Text("Diese Aktion kann nicht rückgängig gemacht werden. Alle Produkte, Kunden, Bestellungen, Lieferungen und Einnahmen werden gelöscht. Dein Konto und PIN bleiben erhalten.")
+                }
                 .sheet(isPresented: $viewModel.showingExportPasswordSheet) {
                     ExportPasswordSheet(
                         viewModel: viewModel,
@@ -162,6 +217,41 @@ struct SettingsRow: View {
             Text(value).font(Font.App.caption).foregroundStyle(Color.App.textSecondary)
         }
         .padding(AppSpacing.md)
+    }
+}
+
+struct SettingsActionRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: AppSpacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(iconColor)
+                .frame(width: 36, height: 36)
+                .background(iconColor.opacity(0.15))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.small))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(Font.App.body)
+                    .foregroundStyle(Color.App.textPrimary)
+                Text(subtitle)
+                    .font(Font.App.smallCaption)
+                    .foregroundStyle(Color.App.textSecondary)
+                    .lineLimit(2)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.App.textSecondary.opacity(0.5))
+        }
+        .padding(.vertical, AppSpacing.xs)
     }
 }
 

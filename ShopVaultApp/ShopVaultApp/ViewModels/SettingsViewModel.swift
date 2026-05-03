@@ -22,9 +22,12 @@ class SettingsViewModel: ObservableObject {
     @Published var exportError: String?
     @Published var exportSuccess: String?
     @Published var exportShareItem: ExportShareItem?
-    
+    @Published var showingRestartOnboardingConfirm = false
+    @Published var showingDeleteAllConfirm = false
+
     private let appState: AppState
     private let settingsRepository: AppSettingsRepository
+    private let databaseManager = DatabaseManager.shared
     
     init(
         appState: AppState,
@@ -84,6 +87,57 @@ class SettingsViewModel: ObservableObject {
     
     func logout() {
         appState.handleLogout()
+    }
+
+    /// Resets the onboarding flag so the wizard appears again on next nav.
+    func restartOnboarding(userId: String, appState: AppState) {
+        Task {
+            do {
+                let current = try await settingsRepository.getOrCreateSettings(for: userId)
+                let updated = AppSettings(
+                    userId: current.userId,
+                    autoLockTimeoutSeconds: current.autoLockTimeoutSeconds,
+                    currency: current.currency,
+                    locale: current.locale,
+                    onboardingCompleted: false,
+                    updatedAt: Date()
+                )
+                try await settingsRepository.upsertSettings(updated)
+                appState.needsOnboarding = true
+                saveSuccess = "Onboarding-Wizard wird beim nächsten Aufruf gestartet."
+            } catch {
+                saveError = error.localizedDescription
+            }
+        }
+    }
+
+    /// Deletes all business data (products, customers, orders, deliveries, income).
+    /// Keeps user, settings, categories.
+    func deleteAllData(userId: String, appState: AppState) {
+        Task {
+            do {
+                try databaseManager.transaction {
+                    try databaseManager.execute("PRAGMA defer_foreign_keys = ON")
+                    try databaseManager.execute("DELETE FROM order_items")
+                    try databaseManager.execute("DELETE FROM orders WHERE user_id = ?", parameters: [userId])
+                    try databaseManager.execute("DELETE FROM delivery_items")
+                    try databaseManager.execute("DELETE FROM supplier_deliveries WHERE user_id = ?", parameters: [userId])
+                    try databaseManager.execute("DELETE FROM income_entries WHERE user_id = ?", parameters: [userId])
+                    try databaseManager.execute("DELETE FROM customers WHERE user_id = ?", parameters: [userId])
+                    try databaseManager.execute("DELETE FROM products")
+                }
+
+                NotificationCenter.default.post(name: .stockDidChange, object: nil)
+                NotificationCenter.default.post(name: .orderDidChange, object: nil)
+                NotificationCenter.default.post(name: .deliveryDidChange, object: nil)
+                NotificationCenter.default.post(name: .incomeEntriesDidChange, object: nil)
+
+                appState.refreshLowStockCount()
+                saveSuccess = "Alle Daten gelöscht."
+            } catch {
+                saveError = error.localizedDescription
+            }
+        }
     }
 
     func prepareLaptopExport() {

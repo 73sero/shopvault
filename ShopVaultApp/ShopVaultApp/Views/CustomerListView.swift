@@ -54,19 +54,19 @@ struct CustomerListView: View {
                     .padding(AppSpacing.xxl)
                     .frame(maxHeight: .infinity)
                 } else if viewModel.filteredCustomers.isEmpty {
-                    VStack(spacing: AppSpacing.sm) {
-                        Image(systemName: "person.2")
-                            .font(.system(size: 48))
-                            .foregroundStyle(Color.App.textSecondary.opacity(0.5))
-                        Text("Keine Kunden")
-                            .font(Font.App.headline)
-                            .foregroundStyle(Color.App.textSecondary)
-                        Text("Erstelle deinen ersten Kunden")
-                            .font(Font.App.caption)
-                            .foregroundStyle(Color.App.textSecondary.opacity(0.7))
+                    EmptyStateCard(
+                        icon: viewModel.searchText.isEmpty ? "person.2" : "magnifyingglass",
+                        title: viewModel.searchText.isEmpty ? "Noch keine Kunden" : "Keine Treffer",
+                        subtitle: viewModel.searchText.isEmpty
+                            ? "Lege deinen ersten Kunden an, um Bestellungen zu zuordnen."
+                            : "Versuche eine andere Suche.",
+                        actionTitle: viewModel.searchText.isEmpty ? "Kunde anlegen" : nil,
+                        actionIcon: viewModel.searchText.isEmpty ? "plus.circle.fill" : nil
+                    ) {
+                        viewModel.showNewCustomer = true
                     }
-                    .padding(AppSpacing.xxl)
-                    .frame(maxHeight: .infinity)
+                    .padding(AppSpacing.md)
+                    .frame(maxHeight: .infinity, alignment: .top)
                 } else {
                     List {
                         ForEach(viewModel.filteredCustomers) { customer in

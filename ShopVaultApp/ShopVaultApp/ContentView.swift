@@ -127,6 +127,12 @@ struct ContentView: View {
                                     ShopView()
                                 case "finance":
                                     FinanceView()
+                                case "newOrder":
+                                    NewOrderView(viewModel: NewOrderViewModel())
+                                case "newCustomer":
+                                    CustomerListView(viewModel: CustomerListViewModel())
+                                case "newDelivery":
+                                    DeliveryListView(viewModel: DeliveryListViewModel())
                                 default:
                                     EmptyView()
                                 }

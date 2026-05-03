@@ -115,6 +115,18 @@ class InventoryViewModel: ObservableObject {
         }
     }
 
+    func deleteProduct(_ product: Product) {
+        Task {
+            do {
+                try await productRepository.deleteProduct(productId: product.id)
+                products.removeAll { $0.id == product.id }
+                NotificationCenter.default.post(name: .stockDidChange, object: nil)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
     func updateStock(_ product: Product, newStock: Int) {
         Task {
             do {

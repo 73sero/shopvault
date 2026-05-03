@@ -93,6 +93,45 @@ final class ProductRepository: @unchecked Sendable {
         ])
     }
 
+    func insertProduct(_ product: Product) async throws {
+        let sql = """
+        INSERT INTO products
+            (id, code, name, specification, price, stock, low_stock_threshold, is_favorite, is_active, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        let now = ISO8601DateFormatter().string(from: Date())
+        try databaseManager.execute(sql, parameters: [
+            product.id,
+            product.code,
+            product.name,
+            product.specification,
+            NSDecimalNumber(decimal: product.price).stringValue,
+            product.stock,
+            product.lowStockThreshold,
+            product.isFavorite ? 1 : 0,
+            product.isActive ? 1 : 0,
+            now,
+            now
+        ])
+    }
+
+    func deleteProduct(productId: String) async throws {
+        // Soft-delete: hide instead of hard delete to preserve order_items FK integrity.
+        // Hard-delete is rejected by FK if any order_items reference this product.
+        let referencedRows = try databaseManager.queryAsJSON(
+            "SELECT 1 FROM order_items WHERE product_id = ? LIMIT 1",
+            parameters: [productId]
+        )
+        if referencedRows.isEmpty {
+            try databaseManager.execute(
+                "DELETE FROM products WHERE id = ?",
+                parameters: [productId]
+            )
+        } else {
+            try toggleActive(productId: productId, isActive: false)
+        }
+    }
+
     func updateProduct(_ product: Product) async throws {
         let sql = """
         UPDATE products

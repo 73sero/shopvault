@@ -21,6 +21,7 @@ extension Color {
         static let categoryGreen = Color(hex: "4CAF50")
         static let categoryOrange = Color(hex: "FF9800")
         static let categoryPurple = Color(hex: "9C27B0")
+        static let categoryPink = Color(hex: "EC407A")
     }
 }
 
