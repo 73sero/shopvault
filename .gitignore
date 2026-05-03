@@ -1,0 +1,81 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Xcode
+build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/xcode/xcuserdata/
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+Packages/
+Package.pins
+*.xcodeproj/xcshareddata/swiftpm/Package.resolved
+
+# CocoaPods (not used)
+Pods/
+Podfile.lock
+
+# Carthage (not used)
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Generated icon assets
+ShopVaultMac/build/AppIcon.icns
+ShopVaultMac/build/AppIcon.iconset/
+
+# IDE
+.idea/
+.vscode/
+
+# Local environment & secrets
+.env
+.env.local
+
+# Logs & test artifacts
+*.log
+*.xctest
+coverage/
+
+# App-generated data (developer device runs)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Editor swap files
+*.swp
+*.swo
+*~
+
+# Claude/AI assistant artifacts
+.claude/
+.superpowers/
+.planning/

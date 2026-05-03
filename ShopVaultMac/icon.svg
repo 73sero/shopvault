@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Background: deep slate with subtle vertical gradient -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F1620"/>
+      <stop offset="100%" stop-color="#070B12"/>
+    </linearGradient>
+
+    <!-- Accent gradient: mint to teal (matches LinearGradient.appAccent) -->
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00E676"/>
+      <stop offset="100%" stop-color="#00BFA5"/>
+    </linearGradient>
+
+    <linearGradient id="accentSoft" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00E676" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#5CC8FF" stop-opacity="0.10"/>
+    </linearGradient>
+
+    <radialGradient id="glow" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#00E676" stop-opacity="0.28"/>
+      <stop offset="60%" stop-color="#00E676" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#00E676" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- macOS icon shape (continuous rounded squircle approximation) -->
+    <clipPath id="squircle">
+      <rect x="0" y="0" width="1024" height="1024" rx="232" ry="232"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#squircle)">
+    <!-- Base background -->
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+
+    <!-- Soft mesh blobs reminiscent of the in-app background -->
+    <circle cx="320" cy="240" r="360" fill="url(#accentSoft)" opacity="0.7"/>
+    <circle cx="780" cy="820" r="320" fill="url(#accentSoft)" opacity="0.6"/>
+
+    <!-- Center radial glow behind the S -->
+    <circle cx="512" cy="470" r="360" fill="url(#glow)"/>
+
+    <!-- Subtle inner stroke (like a card edge) -->
+    <rect x="20" y="20" width="984" height="984" rx="216" ry="216"
+          fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2"/>
+
+    <!-- Stylized S — same DNA as the iPhone icon, scaled up and centered -->
+    <path d="M 340 370
+             C 340 290, 425 240, 525 240
+             C 645 240, 700 305, 700 380
+             C 700 470, 595 500, 510 530
+             C 425 560, 320 590, 320 685
+             C 320 775, 410 830, 510 830
+             C 615 830, 700 785, 700 710"
+          stroke="url(#accent)"
+          stroke-width="80"
+          stroke-linecap="round"
+          fill="none"/>
+
+    <!-- Decorative dots at S endpoints -->
+    <circle cx="700" cy="380" r="42" fill="#00E676"/>
+    <circle cx="320" cy="685" r="42" fill="#00BFA5"/>
+
+    <!-- Lock badge bottom-right (signals: encrypted viewer) -->
+    <g transform="translate(720, 680)">
+      <!-- Soft halo behind badge -->
+      <circle cx="100" cy="100" r="125" fill="#0F1620"/>
+      <circle cx="100" cy="100" r="118" fill="#0F1620" stroke="url(#accent)" stroke-width="6"/>
+      <!-- Lock shape: shackle + body -->
+      <path d="M 65 88
+               C 65 65, 80 50, 100 50
+               C 120 50, 135 65, 135 88
+               L 135 110
+               L 122 110
+               L 122 88
+               C 122 73, 113 64, 100 64
+               C 87 64, 78 73, 78 88
+               L 78 110
+               L 65 110 Z"
+            fill="url(#accent)"/>
+      <rect x="60" y="108" width="80" height="62" rx="10" fill="url(#accent)"/>
+      <!-- Keyhole -->
+      <circle cx="100" cy="135" r="8" fill="#0F1620"/>
+      <rect x="96" y="135" width="8" height="18" rx="2" fill="#0F1620"/>
+    </g>
+  </g>
+</svg>
